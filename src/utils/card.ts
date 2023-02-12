@@ -1,0 +1,264 @@
+import * as t from "runtypes";
+import * as luhn from "@xxhax/luhn";
+
+export const enum CardPaymentSystem {
+  Mastercard = "mastercard",
+  Electron = "electron",
+  Visa = "visa",
+  Maestro = "maestro",
+  Mir = "mir",
+  AmericanExpress = "amex",
+  DinersClub = "dinersclub",
+  Discover = "discover",
+  JCB = "jcb",
+  UnionPay = "unionpay",
+  UzCard = "uzcard",
+  Humo = "humo",
+  Troy = "troy"
+}
+
+export function formatPan(
+  pan: string,
+  mask = "0000 0000 0000 0000 000",
+  maskChar = "0"
+) {
+  let index = 0;
+  let result = "";
+  for (const char of mask.split("")) {
+    if (char !== maskChar) {
+      result += char;
+      continue;
+    }
+    const realChar = pan[index++];
+    if (realChar === undefined) break;
+    result += realChar;
+  }
+  return result;
+}
+
+export function resolveCardExpiryYear(year: number | string) {
+  year = parseInt(String(year));
+
+  const MAX_CARD_ISSUE_YEARS = 30;
+  const currentYear = new Date().getFullYear();
+  if (currentYear + MAX_CARD_ISSUE_YEARS > year) return 2000 + year;
+
+  return 1900 + year;
+}
+
+// https://en.wikipedia.org/wiki/Payment_card_number#Issuer_identification_number_(IIN)
+const paymentSystems: readonly [string, CardPaymentSystem][] = [
+  ["2200-2204", CardPaymentSystem.Mir],
+  ["2221-2720", CardPaymentSystem.Mastercard],
+  ["3528-3589", CardPaymentSystem.JCB],
+  ["34", CardPaymentSystem.AmericanExpress],
+  ["37", CardPaymentSystem.AmericanExpress],
+  ["36", CardPaymentSystem.DinersClub],
+  ["417500", CardPaymentSystem.Electron],
+  ["4026", CardPaymentSystem.Electron],
+  ["4508", CardPaymentSystem.Electron],
+  ["4844", CardPaymentSystem.Electron],
+  ["4913", CardPaymentSystem.Electron],
+  ["4917", CardPaymentSystem.Electron],
+  ["4", CardPaymentSystem.Visa],
+  ["5018", CardPaymentSystem.Maestro],
+  ["5020", CardPaymentSystem.Maestro],
+  ["5038", CardPaymentSystem.Maestro],
+  ["5893", CardPaymentSystem.Maestro],
+  ["54", CardPaymentSystem.DinersClub],
+  ["51-55", CardPaymentSystem.Mastercard],
+  ["622126-622925", CardPaymentSystem.Discover],
+  ["6011", CardPaymentSystem.Discover],
+  ["6304", CardPaymentSystem.Maestro],
+  ["6759", CardPaymentSystem.Maestro],
+  ["6761", CardPaymentSystem.Maestro],
+  ["6762", CardPaymentSystem.Maestro],
+  ["6763", CardPaymentSystem.Maestro],
+  ["676770", CardPaymentSystem.Maestro],
+  ["676774", CardPaymentSystem.Maestro],
+  ["644-649", CardPaymentSystem.Discover],
+  ["65", CardPaymentSystem.Discover],
+
+  // this is for detection of Mir-UnionPay cards. 629157 is only bin i know
+  ["629157", CardPaymentSystem.Mir],
+  ["62", CardPaymentSystem.UnionPay],
+
+  // ["8600", CardPaymentSystem.UzCard],
+  // ["9860", CardPaymentSystem.Humo],
+  // ["9792", CardPaymentSystem.Troy]
+];
+
+type Masks = Readonly<Partial<Record<CardPaymentSystem, string>> & { defaultMask: string }>;
+
+export const masks: Masks = {
+  defaultMask: "0000 0000 0000 0000000",
+  [CardPaymentSystem.Maestro]: "0000 0000 0000 0000 000",
+  [CardPaymentSystem.AmericanExpress]: "000000 000000 00000",
+};
+
+function matchRange(range: string, cardNumber: string): boolean {
+  if (!range.includes("-")) {
+    return cardNumber.startsWith(range);
+  }
+
+  const rangeStart = parseInt(range.split("-")[0], 10);
+  const rangeEnd = parseInt(range.split("-")[1], 10);
+  const cardNumberNumeric = parseInt(
+    cardNumber.slice(0, rangeStart.toString().length),
+    10
+  );
+
+  return cardNumberNumeric >= rangeStart && cardNumberNumeric <= rangeEnd;
+}
+
+export const acceptedPaymentSystems = [
+  CardPaymentSystem.Mastercard,
+  CardPaymentSystem.Electron,
+  CardPaymentSystem.Visa,
+  CardPaymentSystem.Maestro,
+  CardPaymentSystem.Mir,
+  CardPaymentSystem.AmericanExpress,
+  CardPaymentSystem.DinersClub,
+  CardPaymentSystem.Discover,
+  CardPaymentSystem.JCB,
+  CardPaymentSystem.UnionPay
+];
+
+export function detectPaymentSystem(
+  cardNumber: string,
+  available: CardPaymentSystem[] = acceptedPaymentSystems
+) {
+  if (typeof cardNumber !== "string" || cardNumber === "") return [];
+
+  const paymentSystem = paymentSystems
+    .filter(([range, system]) => {
+      if (Array.isArray(available) && !available.includes(system)) {
+        return false;
+      }
+
+      return matchRange(range, cardNumber);
+    })
+    .map((x) => x[1]);
+
+  return paymentSystem;
+}
+
+export const Pan = t.String.withConstraint((str) => {
+  const system = detectPaymentSystem(str);
+
+  if (str.length < 16) {
+    return "Номер карты не может быть короче 16 цифр";
+  }
+
+  if (str.length > 19) {
+    return "Номер карты не может быть короче 19 цифр";
+  }
+
+  if (!/^\d{16,19}$/.test(str)) {
+    return "Номер карты может содержать только цифры";
+  }
+
+  if (system.length === 0) {
+    return "Карта не поддерживается";
+  }
+
+  if (!luhn.check(str)) {
+    return "Недопустимый номер карты. Скорее всего в нём допущена ошибка";
+  }
+
+  return true;
+});
+
+export const Expiry = t
+  .Tuple(
+    t.String.withConstraint(
+      (str) => /^(0?\d|10|11|12)$/.test(str) || "Неправильный номер месяца."
+    ),
+    t.String.withConstraint(
+      (str) => /^\d{2}$/.test(str) || "Неверный номер года"
+    )
+  )
+  .withConstraint((value) => {
+    const [month, year] = value
+      .map((value) => parseInt(value, 10))
+      .concat([NaN, NaN]);
+
+    if (Number.isNaN(month)) {
+      return "Месяц не является числом";
+    }
+
+    if (month > 12) {
+      return "Номер месяца не может быть больше 12";
+    }
+
+    if (month < 1) {
+      return "Номер месяца не может быть меньше 1";
+    }
+
+    if (Number.isNaN(year)) {
+      return "Год не является числом";
+    }
+
+    if (year > 99) {
+      return "Год не может быть больше 99";
+    }
+
+    if (year < 0) {
+      return "Год не может быть меньше 0";
+    }
+
+    const today = new Date();
+    const expiry = new Date(
+      resolveCardExpiryYear(year),
+      month,
+      1,
+      0,
+      -today.getTimezoneOffset()
+    );
+
+    if (expiry.getTime() < today.getTime()) {
+      return "Срок действия карты истёк";
+    }
+
+    return true;
+  });
+
+export const Csc = t.String.withConstraint(
+  (str) => /^\d{3,4}$/.test(str) || "Не является защитным кодом карты"
+);
+
+export const Card = t
+  .Record({
+    pan: Pan,
+    expiry: Expiry,
+    csc: Csc
+  })
+  .asReadonly();
+
+export type Card = t.Static<typeof Card>;
+
+export function card2string(card: Card): string {
+  Card.check(card);
+  const data = [card.pan, card.expiry.join("/"), card.csc];
+  const string = data.join(",");
+
+  return string;
+}
+
+export function string2card(string: string): Card {
+  const [pan, expiry, csc] = string.split(",");
+
+  return Card.check({
+    pan,
+    expiry: expiry.split("/"),
+    csc
+  });
+}
+
+export function maskPan(pan: string) {
+  const bin = pan.slice(0, 6);
+  const id = pan.slice(-4);
+  const mask = "*".repeat(pan.length - 10);
+
+  return bin + mask + id;
+}
