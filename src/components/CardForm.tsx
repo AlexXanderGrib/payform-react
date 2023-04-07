@@ -9,7 +9,9 @@ import {
   useRef,
   useState,
   forwardRef,
-  RefObject
+  RefObject,
+  KeyboardEvent,
+  useId
 } from "react";
 import { filterString } from "@xxhax/strings";
 import IMask from "imask";
@@ -28,12 +30,13 @@ import {
   Csc,
   detectPaymentSystem,
   Expiry,
-  masks,
+  meta,
   Pan
 } from "../utils/card";
 import MainButton from "./MainButton";
 import { useAutoJump } from "../hooks/useAutoJump";
 import classNames from "classnames";
+import { indexOfNth } from "../utils/index-of-nth";
 
 const filterPan = (cardNumber: string) => filterString(cardNumber, /\d/);
 
@@ -108,6 +111,9 @@ export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
       <div className="pt-8 empty:hidden text-danger-500">{error}</div>
       <div className="h-8" />
       <MainButton type="submit">Оплатить</MainButton>
+      <p className="py-2 text-sm text-gray-600 text-center">
+        Комиссия рассчитывается на странице с оплатой
+      </p>
     </form>
   );
 }
@@ -134,13 +140,17 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
     }
   });
 
+  const descriptor =
+    meta[paymentSystem as CardPaymentSystem] ?? meta.defaultValue;
+  const mask = descriptor.mask;
+  const minLength = Math.min(...descriptor.lengths);
+  const maxLength = indexOfNth(mask, "0", Math.max(...descriptor.lengths)) + 1;
+
   return (
     <>
       <CardInput
         label="Номер карты"
-        mask={{
-          mask: masks[paymentSystem as CardPaymentSystem] ?? masks.defaultMask
-        }}
+        mask={{ mask }}
         validate={validatorOf((x) => Pan.validate(filterString(x, /\d/)))}
         ref={ref}
         onUpdate={onUpdate}
@@ -161,18 +171,18 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
           )
         }
         autoComplete="cc-number"
-        placeholder="••••   ••••   ••••   ••••"
+        placeholder={mask.replace(/0/g, "•").replace(/\s+/g, "   ")}
         inputMode="numeric"
         pattern="[\d ]{10,30}"
         required
-        minLength={19}
-        maxLength={23}
+        minLength={minLength}
+        maxLength={maxLength}
         type="text"
         disabled={disabled}
       />
 
-      <ul
-        aria-aria-label="Поддерживаемые платёжные системы"
+      {/* <ul
+        aria-label="Поддерживаемые платёжные системы"
         className="flex py-2 gap-2 flex-wrap"
       >
         {acceptedPaymentSystems.map((name) => (
@@ -194,7 +204,7 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
             />
           </li>
         ))}
-      </ul>
+      </ul> */}
     </>
   );
 });
@@ -203,40 +213,76 @@ const CardExpiry = forwardRef<HTMLInputElement, CardElementProps>(
   function CardExpiry({ next, name, prev }, ref) {
     const { disabled } = useContext(ValidationContext);
     const { onUpdate, onKeyDown } = useAutoJump({ next, prev });
+    const id = useId();
+
+    const months = new Map<string, string>();
+    const date = new Date();
+    let formatter: Intl.DateTimeFormat | undefined;
+
+    for (let i = 0; i < 10 * 12; i++) {
+      if (typeof window === "undefined") {
+        break;
+      }
+
+      if (!formatter && typeof Intl.DateTimeFormat !== "undefined") {
+        formatter = new Intl.DateTimeFormat(navigator.language, {
+          month: "long",
+          year: "numeric"
+        });
+      }
+
+      const text =
+        (date.getMonth() + 1).toFixed(0).padStart(2, "0") +
+        "/" +
+        date.getFullYear().toFixed(0).slice(2, 4);
+
+      months.set(text, formatter ? formatter.format(date) : "");
+      date.setMonth(date.getMonth() + 1);
+    }
 
     return (
-      <CardInput
-        validate={validatorOf((expiry) => Expiry.validate(expiry.split("/")))}
-        icon={<CalendarIcon className="w-6 h-6 text-secondary-600" />}
-        mask={{
-          mask: "MM{/}YY",
-          blocks: {
-            YY: {
-              mask: IMask.MaskedRange,
-              from: 1,
-              to: 99
-            },
-            MM: {
-              mask: IMask.MaskedRange,
-              from: 1,
-              to: 12
+      <>
+        <datalist id={id}>
+          {[...months].map(([month, text]) => (
+            <option value={month} key={month}>
+              {text}
+            </option>
+          ))}
+        </datalist>
+        <CardInput
+          list={id}
+          validate={validatorOf((expiry) => Expiry.validate(expiry.split("/")))}
+          icon={<CalendarIcon className="w-6 h-6 text-secondary-600" />}
+          mask={{
+            mask: "MM{/}YY",
+            blocks: {
+              YY: {
+                mask: IMask.MaskedRange,
+                from: 1,
+                to: 99
+              },
+              MM: {
+                mask: IMask.MaskedRange,
+                from: 1,
+                to: 12
+              }
             }
-          }
-        }}
-        label="Срок действия"
-        ref={ref}
-        name={name}
-        inputMode="numeric"
-        autoComplete="cc-exp"
-        placeholder="MM/ГГ"
-        maxLength={5}
-        required
-        pattern="[0-9/]+"
-        type="text"
-        disabled={disabled}
-        onUpdate={onUpdate}
-        onKeyDown={onKeyDown}
-      />
+          }}
+          label="Срок действия"
+          ref={ref}
+          name={name}
+          inputMode="numeric"
+          autoComplete="cc-exp"
+          placeholder="MM/ГГ"
+          maxLength={5}
+          required
+          pattern="[0-9/]+"
+          type="text"
+          disabled={disabled}
+          onUpdate={onUpdate}
+          onKeyDown={onKeyDown}
+        />
+      </>
     );
   }
 );

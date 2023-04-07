@@ -1,5 +1,6 @@
 import { Disclosure, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import classNames from "classnames";
 import { PropsWithChildren } from "react";
 import Countdown from "./Countdown";
 import If from "./If";
@@ -31,11 +32,21 @@ export function Wrapper({
               as="button"
               className="flex justify-between items-center clickable w-full"
             >
-              
-              <ChevronDownIcon className="w-6 h-6 cursor-pointer" />
-              <div className="text-4xl font-bold">
-                <Money amount={amount} />
-              </div>
+              {({ open }) => (
+                <>
+                  <ChevronDownIcon
+                    className={classNames(
+                      "w-6 h-6 cursor-pointer rounded-full transition transform duration-150",
+                      {
+                        "-rotate-180": open
+                      }
+                    )}
+                  />
+                  <div className="text-4xl font-bold">
+                    <Money amount={amount} />
+                  </div>
+                </>
+              )}
             </Disclosure.Button>
 
             <Transition
@@ -46,10 +57,12 @@ export function Wrapper({
               leaveFrom="transform scale-100 opacity-100"
               leaveTo="transform scale-95 opacity-0"
               className="w-full"
+              unmount={false}
             >
               <Disclosure.Panel
                 as="dl"
                 className="bg-secondary-700 text-white rounded-3xl p-6 mt-4 flex flex-col gap-2 w-full"
+                unmount={false}
               >
                 <If condition={!!billId}>
                   <dt>Номер счёта:</dt>
@@ -78,7 +91,6 @@ export function Wrapper({
           </Disclosure>
 
           {children}
-  
         </div>
       </div>
     </div>

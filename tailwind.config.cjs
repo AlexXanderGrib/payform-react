@@ -15,6 +15,12 @@ const utils = plugin(({ addUtilities }) => {
     },
     ".placeholder-select-none::placeholder": {
       "user-select": "none"
+    },
+    ".no-arrow::-webkit-calendar-picker-indicator": {
+      display: "none"
+    },
+    ".no-arrow::-webkit-list-button": {
+      display: "none"
     }
   });
 });
@@ -33,7 +39,7 @@ module.exports = {
       colors: {
         primary: colors.indigo,
         secondary: colors.slate,
-        danger: colors.rose,
+        danger: colors.rose
       }
     }
   },

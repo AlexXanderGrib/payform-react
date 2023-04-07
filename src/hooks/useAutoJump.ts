@@ -20,7 +20,6 @@ export function useAutoJump({
         const validity = ref.checkValidity();
 
         if (result && validity && next?.current) {
-          console.log("Should jump to next", next.current);
 
           next.current.focus();
         }
@@ -69,7 +68,6 @@ export function useAutoJump({
     [prev?.current, next?.current]
   );
 
-  console.log({ next: next?.current, prev: prev?.current });
 
   return { onUpdate, onKeyDown };
 }

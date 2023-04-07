@@ -81,19 +81,52 @@ const paymentSystems: readonly [string, CardPaymentSystem][] = [
 
   // this is for detection of Mir-UnionPay cards. 629157 is only bin i know
   ["629157", CardPaymentSystem.Mir],
-  ["62", CardPaymentSystem.UnionPay],
+  ["62", CardPaymentSystem.UnionPay]
 
   // ["8600", CardPaymentSystem.UzCard],
   // ["9860", CardPaymentSystem.Humo],
   // ["9792", CardPaymentSystem.Troy]
 ];
 
-type Masks = Readonly<Partial<Record<CardPaymentSystem, string>> & { defaultMask: string }>;
+type Overrides<T> = Readonly<
+  Partial<Record<CardPaymentSystem, T>> & { defaultValue: T }
+>;
 
-export const masks: Masks = {
-  defaultMask: "0000 0000 0000 0000000",
-  [CardPaymentSystem.Maestro]: "0000 0000 0000 0000 000",
-  [CardPaymentSystem.AmericanExpress]: "000000 000000 00000",
+const extendedDefault = {
+  mask: "0000 0000 0000 0000000",
+  lengths: [16, 17, 18, 19]
+};
+
+export const meta: Overrides<{ lengths: number[]; mask: string }> = {
+  defaultValue: {
+    mask: "0000 0000 0000 0000",
+    lengths: [16]
+  },
+
+  [CardPaymentSystem.AmericanExpress]: {
+    mask: "0000 000000 00000",
+    lengths: [15]
+  },
+
+  [CardPaymentSystem.Mir]: extendedDefault,
+  [CardPaymentSystem.UnionPay]: extendedDefault,
+  [CardPaymentSystem.Discover]: extendedDefault,
+  [CardPaymentSystem.JCB]: extendedDefault,
+
+  [CardPaymentSystem.Visa]: {
+    mask: "0000 0000 0000 0000",
+    lengths: [13, 16]
+  },
+
+  [CardPaymentSystem.Maestro]: {
+    mask: "0000 0000 0000 0000 000",
+    lengths: [12, 13, 14, 15, 16, 17, 18, 19]
+  },
+
+  [CardPaymentSystem.DinersClub]: {
+    mask: "0000 0000 0000 0000 000",
+    lengths: [14, 15, 16, 17, 18, 19]
+  }
 };
 
 function matchRange(range: string, cardNumber: string): boolean {
@@ -144,26 +177,28 @@ export function detectPaymentSystem(
 }
 
 export const Pan = t.String.withConstraint((str) => {
-  const system = detectPaymentSystem(str);
-
-  if (str.length < 16) {
-    return "Номер карты не может быть короче 16 цифр";
-  }
-
-  if (str.length > 19) {
-    return "Номер карты не может быть короче 19 цифр";
-  }
-
-  if (!/^\d{16,19}$/.test(str)) {
+  if (!/^\d+$/.test(str)) {
     return "Номер карты может содержать только цифры";
   }
+
+  if (str.length < 6) {
+    return "Номер карты не может быть короче 12 символов";
+  }
+
+  const system = detectPaymentSystem(str);
 
   if (system.length === 0) {
     return "Карта не поддерживается";
   }
 
+  const descriptor = meta[system[0]] ?? meta.defaultValue;
+
+  if (!descriptor.lengths.includes(str.length)) {
+    return `Неполный номер карты`;
+  }
+
   if (!luhn.check(str)) {
-    return "Недопустимый номер карты. Скорее всего в нём допущена ошибка";
+    return "Недопустимый номер карты. В нём допущена ошибка";
   }
 
   return true;

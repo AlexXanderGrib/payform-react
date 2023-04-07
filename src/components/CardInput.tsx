@@ -97,7 +97,7 @@ export const CardInput = forwardRef(function CardInput(
           {...props}
           ref={ref}
           className={classNames(
-            "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900",
+            "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900 !no-arrow",
             {
               "!pr-0": !!icon
             }
