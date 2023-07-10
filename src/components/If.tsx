@@ -1,4 +1,3 @@
-import React from 'react';
 import { PropsWithChildren, ReactNode } from 'react';
 
 type IfProps = PropsWithChildren<{ condition: boolean; render?: () => ReactNode; }>;

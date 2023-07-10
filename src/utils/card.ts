@@ -157,6 +157,16 @@ export const acceptedPaymentSystems = [
   CardPaymentSystem.UnionPay
 ];
 
+const errorMessages = {
+  ONLY_NUMBERS_ALLOWED: "Поле может содержать только цифры",
+
+  INCOMPLETE_CARD_NUMBER: "Неполный номер карты",
+  INVALID_CARD_NUMBER: "Недопустимый номер карты. В нём допущена ошибка",
+  UNSUPPORTED_CARD_NETWORK: "Карта не поддерживается",
+
+  CARD_EXPIRED: "Срок действия карты истёк"
+};
+
 export function detectPaymentSystem(
   cardNumber: string,
   available: CardPaymentSystem[] = acceptedPaymentSystems
@@ -178,27 +188,27 @@ export function detectPaymentSystem(
 
 export const Pan = t.String.withConstraint((str) => {
   if (!/^\d+$/.test(str)) {
-    return "Номер карты может содержать только цифры";
+    return errorMessages.ONLY_NUMBERS_ALLOWED;
   }
 
   if (str.length < 6) {
-    return "Номер карты не может быть короче 12 символов";
+    return errorMessages.INCOMPLETE_CARD_NUMBER;
   }
 
   const system = detectPaymentSystem(str);
 
   if (system.length === 0) {
-    return "Карта не поддерживается";
+    return errorMessages.UNSUPPORTED_CARD_NETWORK;
   }
 
   const descriptor = meta[system[0]] ?? meta.defaultValue;
 
   if (!descriptor.lengths.includes(str.length)) {
-    return `Неполный номер карты`;
+    return errorMessages.INCOMPLETE_CARD_NUMBER;
   }
 
   if (!luhn.check(str)) {
-    return "Недопустимый номер карты. В нём допущена ошибка";
+    return errorMessages.INVALID_CARD_NUMBER;
   }
 
   return true;
@@ -207,10 +217,11 @@ export const Pan = t.String.withConstraint((str) => {
 export const Expiry = t
   .Tuple(
     t.String.withConstraint(
-      (str) => /^(0?\d|10|11|12)$/.test(str) || "Неправильный номер месяца."
+      (str) =>
+        /^(0?\d|10|11|12)$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
     ),
     t.String.withConstraint(
-      (str) => /^\d{2}$/.test(str) || "Неверный номер года"
+      (str) => /^\d{2}$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
     )
   )
   .withConstraint((value) => {
@@ -218,28 +229,8 @@ export const Expiry = t
       .map((value) => parseInt(value, 10))
       .concat([NaN, NaN]);
 
-    if (Number.isNaN(month)) {
-      return "Месяц не является числом";
-    }
-
-    if (month > 12) {
-      return "Номер месяца не может быть больше 12";
-    }
-
-    if (month < 1) {
-      return "Номер месяца не может быть меньше 1";
-    }
-
-    if (Number.isNaN(year)) {
-      return "Год не является числом";
-    }
-
-    if (year > 99) {
-      return "Год не может быть больше 99";
-    }
-
-    if (year < 0) {
-      return "Год не может быть меньше 0";
+    if (Number.isNaN(month) || Number.isNaN(year)) {
+      return errorMessages.ONLY_NUMBERS_ALLOWED;
     }
 
     const today = new Date();
@@ -252,14 +243,14 @@ export const Expiry = t
     );
 
     if (expiry.getTime() < today.getTime()) {
-      return "Срок действия карты истёк";
+      return errorMessages.CARD_EXPIRED;
     }
 
     return true;
   });
 
 export const Csc = t.String.withConstraint(
-  (str) => /^\d{3,4}$/.test(str) || "Не является защитным кодом карты"
+  (str) => /^\d{3,4}$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
 );
 
 export const Card = t

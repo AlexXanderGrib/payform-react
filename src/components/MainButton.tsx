@@ -8,7 +8,7 @@ export default function MainButton(
 ) {
   return (
     <button
-      className="text-lg bg-primary-500 hover:bg-primary-600 disabled:bg-secondary-400 disabled:cursor-not-allowed transition-colors rounded-xl select-none clickable text-white font-bold px-8 py-5 w-full"
+      className="text-lg bg-primary-500 hover:bg-primary-600 disabled:bg-secondary-400 disabled:cursor-not-allowed transition-colors rounded-xl select-none clickable text-white font-bold px-8 py-5 w-full forced-colors:border-2"
       {...props}
     />
   );

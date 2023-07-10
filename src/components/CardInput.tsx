@@ -78,7 +78,7 @@ export const CardInput = forwardRef(function CardInput(
   return (
     <label className="flex flex-col gap-1">
       <span
-        className={classNames("text-sm text-secondary-600 ", {
+        className={classNames("text-sm text-secondary-600 dark:text-white", {
           "text-danger-600": error
         })}
       >
@@ -86,7 +86,7 @@ export const CardInput = forwardRef(function CardInput(
       </span>
       <div
         className={classNames(
-          "bg-white border-2 border-secondary-400 flex rounded-lg overflow-hidden",
+          "bg-white border-2 border-secondary-400 dark:bg-slate-900 dark:border-secondary-700 flex rounded-lg overflow-hidden",
           {
             "!border-primary-600": focused,
             "!border-danger-600": error
@@ -97,14 +97,14 @@ export const CardInput = forwardRef(function CardInput(
           {...props}
           ref={ref}
           className={classNames(
-            "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900 !no-arrow",
+            "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900 dark:text-white dark:bg-slate-900 !no-arrow",
             {
               "!pr-0": !!icon
             }
           )}
         />
         <If condition={!!icon}>
-          <span className="py-4 px-1 sm:px-2 md:px-4 flex items-center justify-center">{icon}</span>
+          <span className="py-4 px-1 sm:px-2 md:px-4 flex items-center justify-center text-secondary-600 forced-colors:text-white dark:text-secondary-400">{icon}</span>
         </If>
       </div>
       <div className="text-danger-600 text-sm empty:hidden">{error}</div>

@@ -25,9 +25,13 @@ const utils = plugin(({ addUtilities }) => {
   });
 });
 
+const forcedColors = plugin(({ addVariant }) => {
+  addVariant('forced-colors', '@media (forced-colors: active)');
+})
+
 module.exports = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  darkMode: "class",
+  darkMode: 'media',
   theme: {
     extend: {
       borderRadius: {
@@ -46,5 +50,5 @@ module.exports = {
   variants: {
     extend: {}
   },
-  plugins: [forms, aspectRatio, typography, utils]
+  plugins: [forms, aspectRatio, typography, utils, forcedColors]
 };

@@ -1,16 +1,12 @@
 import {
   createContext,
   FormEvent,
-  MutableRefObject,
-  ReactNode,
   useCallback,
-  useEffect,
   useContext,
   useRef,
   useState,
   forwardRef,
   RefObject,
-  KeyboardEvent,
   useId
 } from "react";
 import { filterString } from "@xxhax/strings";
@@ -35,7 +31,6 @@ import {
 } from "../utils/card";
 import MainButton from "./MainButton";
 import { useAutoJump } from "../hooks/useAutoJump";
-import classNames from "classnames";
 import { indexOfNth } from "../utils/index-of-nth";
 
 const filterPan = (cardNumber: string) => filterString(cardNumber, /\d/);
@@ -95,7 +90,7 @@ export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
   return (
     <form action="#" ref={ref} onSubmit={handleSubmit}>
       <ValidationContext.Provider value={{ canSubmit, disabled }}>
-        <div className="grid grid-cols-2 grid-rows-[auto_auto] gap-4 bg-secondary-100 p-4 rounded-xl">
+        <div className="grid grid-cols-2 grid-rows-[auto_auto] gap-4 bg-secondary-100 dark:bg-secondary-800 p-4 rounded-xl forced-colors:border-2">
           <section className="col-span-2">
             <CardPan name={names.pan} ref={panRef} next={expiryRef} />
           </section>
@@ -111,7 +106,7 @@ export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
       <div className="pt-8 empty:hidden text-danger-500">{error}</div>
       <div className="h-8" />
       <MainButton type="submit">Оплатить</MainButton>
-      <p className="py-2 text-sm text-gray-600 text-center">
+      <p className="py-2 text-sm text-secondary-600 dark:text-white text-center">
         Комиссия рассчитывается на странице с оплатой
       </p>
     </form>
@@ -167,7 +162,7 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
               decoding="auto"
             />
           ) : (
-            <CreditCardIcon className="w-6 h-6 text-secondary-600" />
+            <CreditCardIcon className="w-6 h-6" />
           )
         }
         autoComplete="cc-number"
@@ -180,31 +175,6 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
         type="text"
         disabled={disabled}
       />
-
-      {/* <ul
-        aria-label="Поддерживаемые платёжные системы"
-        className="flex py-2 gap-2 flex-wrap"
-      >
-        {acceptedPaymentSystems.map((name) => (
-          <li
-            key={name}
-            className={classNames("transition-all duration-100", {
-              "opacity-50": name !== paymentSystem
-            })}
-          >
-            <img
-              lang="en"
-              src={`icons/ps_${name.toLowerCase()}.svg`}
-              alt={name}
-              title={name}
-              className="h-3 w-4 sm:h-4 sm:w-6 select-none"
-              draggable="false"
-              loading="eager"
-              decoding="auto"
-            />
-          </li>
-        ))}
-      </ul> */}
     </>
   );
 });
@@ -252,7 +222,7 @@ const CardExpiry = forwardRef<HTMLInputElement, CardElementProps>(
         <CardInput
           list={id}
           validate={validatorOf((expiry) => Expiry.validate(expiry.split("/")))}
-          icon={<CalendarIcon className="w-6 h-6 text-secondary-600" />}
+          icon={<CalendarIcon className="w-6 h-6" />}
           mask={{
             mask: "MM{/}YY",
             blocks: {
@@ -305,7 +275,7 @@ const CardCsc = forwardRef<HTMLInputElement, CardElementProps>(
             className="clickable appearance-none block !cursor-help"
             onClick={(event) => alert(event.currentTarget.title)}
           >
-            <InformationCircleIcon className="w-6 h-6 text-secondary-600" />
+            <InformationCircleIcon className="w-6 h-6" />
           </button>
         }
         ref={ref}
