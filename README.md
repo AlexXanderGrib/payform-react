@@ -1,6 +1,6 @@
 # Платёжная форма на React + Typescript + Tailwind 
 
-[Демо](https://codesandbox.io/p/github/AlexXanderGrib/payform-react/main)
+## [Демо](https://payform-react.pages.dev/)
 
 - Адаптированна даже под IPhone 5/SE
 - Определяет платёжную систему карты
