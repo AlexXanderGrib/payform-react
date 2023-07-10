@@ -2,8 +2,6 @@ const colors = require("tailwindcss/colors");
 const plugin = require("tailwindcss/plugin");
 
 const forms = require("@tailwindcss/forms");
-const typography = require("@tailwindcss/typography");
-const aspectRatio = require("@tailwindcss/aspect-ratio");
 
 const utils = plugin(({ addUtilities }) => {
   addUtilities({
@@ -26,12 +24,12 @@ const utils = plugin(({ addUtilities }) => {
 });
 
 const forcedColors = plugin(({ addVariant }) => {
-  addVariant('forced-colors', '@media (forced-colors: active)');
-})
+  addVariant("forced-colors", "@media (forced-colors: active)");
+});
 
 module.exports = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  darkMode: 'media',
+  darkMode: "media",
   theme: {
     extend: {
       borderRadius: {
@@ -50,5 +48,5 @@ module.exports = {
   variants: {
     extend: {}
   },
-  plugins: [forms, aspectRatio, typography, utils, forcedColors]
+  plugins: [forms, utils, forcedColors]
 };

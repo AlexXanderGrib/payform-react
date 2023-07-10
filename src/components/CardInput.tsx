@@ -10,7 +10,7 @@ import {
 } from "react";
 import IMask from "imask";
 import { useCombinedRefs } from "../hooks/useCombinedRefs";
-import classNames from "classnames";
+import classNames from "clsx";
 import If from "./If";
 
 type CardInputOptions = DetailedHTMLProps<
@@ -20,7 +20,8 @@ type CardInputOptions = DetailedHTMLProps<
   icon?: ReactNode;
   label: string;
   validate: (value: string) => string;
-  mask: IMask.AnyMaskedOptions;
+  // IMask broke my code
+  mask: any;
   onUpdate?: (value: string, el: HTMLInputElement) => void;
 };
 
@@ -97,7 +98,7 @@ export const CardInput = forwardRef(function CardInput(
           {...props}
           ref={ref}
           className={classNames(
-            "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900 dark:text-white dark:bg-slate-900 !no-arrow",
+            "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900 dark:text-white dark:bg-slate-900 !no-arrow placeholder-select-none",
             {
               "!pr-0": !!icon
             }

@@ -1,5 +1,5 @@
 import * as t from "runtypes";
-import * as luhn from "@xxhax/luhn";
+import { luhnCheck } from "./luhn";
 
 export const enum CardPaymentSystem {
   Mastercard = "mastercard",
@@ -207,7 +207,7 @@ export const Pan = t.String.withConstraint((str) => {
     return errorMessages.INCOMPLETE_CARD_NUMBER;
   }
 
-  if (!luhn.check(str)) {
+  if (!luhnCheck(str)) {
     return errorMessages.INVALID_CARD_NUMBER;
   }
 

@@ -1,6 +1,6 @@
 import { Disclosure, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import classNames from "classnames";
+import classNames from "clsx";
 import { PropsWithChildren, ReactNode } from "react";
 import Countdown from "./Countdown";
 import If from "./If";

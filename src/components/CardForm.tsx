@@ -9,7 +9,7 @@ import {
   RefObject,
   useId
 } from "react";
-import { filterString } from "@xxhax/strings";
+import { filterString } from "../utils/filter-string";
 import IMask from "imask";
 import {
   CalendarIcon,
