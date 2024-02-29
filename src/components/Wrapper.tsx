@@ -1,20 +1,25 @@
 import { Disclosure, Transition } from "@headlessui/react";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import classNames from "clsx";
+import {
+  ChevronDownIcon,
+  ClockIcon,
+  DocumentTextIcon,
+  ReceiptPercentIcon
+} from "@heroicons/react/24/outline";
 import { PropsWithChildren, ReactNode } from "react";
 import Countdown from "./Countdown";
-import If from "./If";
 import { Money } from "./Money";
+import { cn } from "../utils/cn";
+import { Alert } from "./Alert";
 
 type WrapperProps = PropsWithChildren<{
-  remaining?: number;
+  deadline?: Date;
   billId?: string;
   amount: number;
   description?: string;
 }>;
 
 export function Wrapper({
-  remaining,
+  deadline,
   billId,
   amount,
   children,
@@ -35,7 +40,7 @@ export function Wrapper({
               {({ open }) => (
                 <>
                   <ChevronDownIcon
-                    className={classNames(
+                    className={cn(
                       "w-6 h-6 cursor-pointer rounded-full transition transform duration-150 dark:text-white",
                       {
                         "-rotate-180": open
@@ -60,25 +65,45 @@ export function Wrapper({
               unmount={false}
             >
               <Disclosure.Panel
-                as="dl"
+                as="ul"
                 className="bg-secondary-100 dark:bg-secondary-800 rounded-xl forced-colors:border-2 p-6 mt-4 flex flex-col gap-2 w-full"
                 unmount={false}
               >
-                <PropertyView
-                  values={{
-                    "Номер счёта": () => billId,
-                    "Время на оплату": () => (
-                      <Countdown
-                        seconds={remaining}
-                        onEnded={() => {
-                          alert("Время на оплату вышло");
-                        }}
-                      />
-                    ),
+                {!!billId && (
+                  <li>
+                    <Alert
+                      title="Номер счёта"
+                      description={billId}
+                      icon={<ReceiptPercentIcon />}
+                    />
+                  </li>
+                )}
 
-                    Описание: () => description
-                  }}
-                />
+                {!!deadline && (
+                  <li>
+                    <Alert
+                      title="Время на оплату"
+                      description={
+                        <Countdown
+                          to={deadline}
+                          onEnded={() => {
+                            alert("Время на оплату вышло");
+                          }}
+                        />
+                      }
+                      icon={<ClockIcon />}
+                    />
+                  </li>
+                )}
+                {!!description && (
+                  <li>
+                    <Alert
+                      title="Описание"
+                      description={description}
+                      icon={<DocumentTextIcon />}
+                    />
+                  </li>
+                )}
               </Disclosure.Panel>
             </Transition>
           </Disclosure>
@@ -101,12 +126,18 @@ function PropertyView({ values = {} as Record<string, () => ReactNode> } = {}) {
     }
 
     const keyElement = (
-      <dt className="text-sm text-secondary-700 dark:text-secondary-100" key={`${key}-key`}>
+      <dt
+        className="text-sm text-secondary-700 dark:text-secondary-100"
+        key={`${key}-key`}
+      >
         {key}
       </dt>
     );
     const valueElement = (
-      <dd className="font-mono pl-2 text-secondary-800 dark:text-white" key={`${key}-content`}>
+      <dd
+        className="font-mono pl-2 text-secondary-800 dark:text-white"
+        key={`${key}-content`}
+      >
         {content}
       </dd>
     );

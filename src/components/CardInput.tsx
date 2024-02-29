@@ -4,14 +4,17 @@ import {
   forwardRef,
   InputHTMLAttributes,
   ReactNode,
+  RefObject,
   useEffect,
   useRef,
   useState
 } from "react";
-import IMask from "imask";
+import IMask, { FactoryArg } from "imask";
 import { useCombinedRefs } from "../hooks/useCombinedRefs";
-import classNames from "clsx";
-import If from "./If";
+import { useFocus } from "../hooks/useFocus";
+import { cn } from "../utils/cn";
+
+type IMaskOptions = FactoryArg;
 
 type CardInputOptions = DetailedHTMLProps<
   InputHTMLAttributes<HTMLInputElement>,
@@ -20,10 +23,34 @@ type CardInputOptions = DetailedHTMLProps<
   icon?: ReactNode;
   label: string;
   validate: (value: string) => string;
-  // IMask broke my code
-  mask: any;
+  mask: IMaskOptions;
   onUpdate?: (value: string, el: HTMLInputElement) => void;
 };
+
+type UseMaskOptions = {
+  onAccept?: (value: string, element: HTMLInputElement) => void;
+};
+
+function useMask(
+  ref: RefObject<HTMLInputElement>,
+  options: IMaskOptions,
+  { onAccept }: UseMaskOptions = {}
+) {
+  useEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+
+    const mask = IMask(el, options);
+
+    mask.on("accept", () => {
+      onAccept?.(mask.value, el);
+    });
+
+    return () => {
+      mask.destroy();
+    };
+  }, [ref.current, options, onAccept]);
+}
 
 export const CardInput = forwardRef(function CardInput(
   {
@@ -37,76 +64,47 @@ export const CardInput = forwardRef(function CardInput(
   outerRef: ForwardedRef<HTMLInputElement>
 ) {
   const [error, setError] = useState("");
-  const [focused, setFocused] = useState(false);
-  const innerRef = useRef<HTMLInputElement>(null);
-  const ref = useCombinedRefs(innerRef, outerRef);
+  const ref = useCombinedRefs(outerRef);
+  const focused = useFocus(ref);
 
-  useEffect(() => {
-    if (!ref.current) return;
-    const el = ref.current;
-
-    const onFocus = () => setFocused(true);
-    const onBlur = () => setFocused(false);
-
-    el.addEventListener("focus", onFocus);
-    el.addEventListener("blur", onBlur);
-
-    if (document.activeElement === el) {
-      onFocus();
-    }
-
-    const mask = IMask(el, maskOptions);
-
-    mask.on("accept", () => {
-      const error = validate(mask.value);
-      onUpdate(mask.value, el);
+  useMask(ref, maskOptions, {
+    onAccept(value, element) {
+      const error = validate(value);
+      onUpdate(value, element);
       setError(error);
-    });
-
-    return () => {
-      el.removeEventListener("focus", onFocus);
-      el.removeEventListener("blur", onBlur);
-      mask.destroy();
-    };
-  }, [ref.current, setError, setFocused, maskOptions]);
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    ref.current.setCustomValidity(error);
-  }, [error, ref.current]);
+      element.setCustomValidity(error);
+    }
+  });
 
   return (
     <label className="flex flex-col gap-1">
       <span
-        className={classNames("text-sm text-secondary-600 dark:text-white", {
+        className={cn("text-sm text-secondary-600 dark:text-white", {
           "text-danger-600": error
         })}
       >
         {label}
       </span>
       <div
-        className={classNames(
+        className={cn(
           "bg-white border-2 border-secondary-400 dark:bg-slate-900 dark:border-secondary-700 flex rounded-lg overflow-hidden",
-          {
-            "!border-primary-600": focused,
-            "!border-danger-600": error
-          }
+          { "!border-primary-600": focused, "!border-danger-600": error }
         )}
       >
         <input
           {...props}
           ref={ref}
-          className={classNames(
+          className={cn(
             "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900 dark:text-white dark:bg-slate-900 !no-arrow placeholder-select-none",
-            {
-              "!pr-0": !!icon
-            }
+            { "!pr-0": !!icon }
           )}
         />
-        <If condition={!!icon}>
-          <span className="py-4 px-1 sm:px-2 md:px-4 flex items-center justify-center text-secondary-600 forced-colors:text-white dark:text-secondary-400">{icon}</span>
-        </If>
+
+        {!!icon && (
+          <span className="py-4 px-1 sm:px-2 md:px-4 flex items-center justify-center text-secondary-600 forced-colors:text-white dark:text-secondary-400">
+            {icon}
+          </span>
+        )}
       </div>
       <div className="text-danger-600 text-sm empty:hidden">{error}</div>
     </label>

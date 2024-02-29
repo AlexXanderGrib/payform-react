@@ -7,9 +7,9 @@ import {
   useState,
   forwardRef,
   RefObject,
-  useId
+  useId,
+  useMemo
 } from "react";
-import { filterString } from "../utils/filter-string";
 import IMask from "imask";
 import {
   CalendarIcon,
@@ -33,7 +33,7 @@ import MainButton from "./MainButton";
 import { useAutoJump } from "../hooks/useAutoJump";
 import { indexOfNth } from "../utils/index-of-nth";
 
-const filterPan = (cardNumber: string) => filterString(cardNumber, /\d/);
+const filterPan = (cardNumber: string) => cardNumber.replace(/\D/g, "");
 
 type CardFormProps = {
   disabled?: boolean;
@@ -106,9 +106,6 @@ export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
       <div className="pt-8 empty:hidden text-danger-500">{error}</div>
       <div className="h-8" />
       <MainButton type="submit">Оплатить</MainButton>
-      <p className="py-2 text-sm text-secondary-600 dark:text-white text-center">
-        Комиссия рассчитывается на странице с оплатой
-      </p>
     </form>
   );
 }
@@ -118,6 +115,8 @@ type CardElementProps = {
   prev?: RefObject<HTMLElement>;
   name: string;
 };
+
+const validatePan = validatorOf((x: string) => Pan.validate(filterPan(x)));
 
 const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
   { next, name },
@@ -146,7 +145,7 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
       <CardInput
         label="Номер карты"
         mask={{ mask }}
-        validate={validatorOf((x) => Pan.validate(filterString(x, /\d/)))}
+        validate={validatePan}
         ref={ref}
         onUpdate={onUpdate}
         onKeyDown={onKeyDown}
@@ -179,36 +178,45 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
   );
 });
 
+function getMonths() {
+  const months = new Map<string, string>();
+  const date = new Date();
+  let formatter: Intl.DateTimeFormat | undefined;
+
+  for (let i = 0; i < 10 * 12; i++) {
+    if (typeof window === "undefined") {
+      break;
+    }
+
+    if (!formatter && typeof Intl.DateTimeFormat !== "undefined") {
+      formatter = new Intl.DateTimeFormat(navigator.language, {
+        month: "long",
+        year: "numeric"
+      });
+    }
+
+    const text =
+      (date.getMonth() + 1).toFixed(0).padStart(2, "0") +
+      "/" +
+      date.getFullYear().toFixed(0).slice(2, 4);
+
+    months.set(text, formatter ? formatter.format(date) : "");
+    date.setMonth(date.getMonth() + 1);
+  }
+
+  return months;
+}
+
+const validateExpiry = validatorOf((expiry: string) =>
+  Expiry.validate(expiry.split("/"))
+);
+
 const CardExpiry = forwardRef<HTMLInputElement, CardElementProps>(
   function CardExpiry({ next, name, prev }, ref) {
     const { disabled } = useContext(ValidationContext);
     const { onUpdate, onKeyDown } = useAutoJump({ next, prev });
     const id = useId();
-
-    const months = new Map<string, string>();
-    const date = new Date();
-    let formatter: Intl.DateTimeFormat | undefined;
-
-    for (let i = 0; i < 10 * 12; i++) {
-      if (typeof window === "undefined") {
-        break;
-      }
-
-      if (!formatter && typeof Intl.DateTimeFormat !== "undefined") {
-        formatter = new Intl.DateTimeFormat(navigator.language, {
-          month: "long",
-          year: "numeric"
-        });
-      }
-
-      const text =
-        (date.getMonth() + 1).toFixed(0).padStart(2, "0") +
-        "/" +
-        date.getFullYear().toFixed(0).slice(2, 4);
-
-      months.set(text, formatter ? formatter.format(date) : "");
-      date.setMonth(date.getMonth() + 1);
-    }
+    const months = useMemo(() => getMonths(), []);
 
     return (
       <>
@@ -221,7 +229,7 @@ const CardExpiry = forwardRef<HTMLInputElement, CardElementProps>(
         </datalist>
         <CardInput
           list={id}
-          validate={validatorOf((expiry) => Expiry.validate(expiry.split("/")))}
+          validate={validateExpiry}
           icon={<CalendarIcon className="w-6 h-6" />}
           mask={{
             mask: "MM{/}YY",
@@ -257,6 +265,10 @@ const CardExpiry = forwardRef<HTMLInputElement, CardElementProps>(
   }
 );
 
+const validateCsc = validatorOf((csc: string) => Csc.validate(csc));
+const alertTargetTitle = (event: { currentTarget: HTMLElement }) =>
+  alert(event.currentTarget.title);
+
 const CardCsc = forwardRef<HTMLInputElement, CardElementProps>(
   function CardExpiry({ name, prev }, ref) {
     const { disabled } = useContext(ValidationContext);
@@ -266,14 +278,14 @@ const CardCsc = forwardRef<HTMLInputElement, CardElementProps>(
       <CardInput
         label="Защитный код"
         mask={{ mask: "0000" }}
-        validate={validatorOf((csc) => Csc.validate(csc))}
+        validate={validateCsc}
         icon={
           <button
             title="Он находится с обратной стороны карты - 3 цифры"
             aria-label='Узнать что такое "Код"'
             type="button"
             className="clickable appearance-none block !cursor-help"
-            onClick={(event) => alert(event.currentTarget.title)}
+            onClick={alertTargetTitle}
           >
             <InformationCircleIcon className="w-6 h-6" />
           </button>

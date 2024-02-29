@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCountdownSeconds } from "../hooks/useCountdownSeconds";
 
 const enum Time {
   Millisecond = 1,
@@ -13,39 +13,13 @@ const formatter = new Intl.DateTimeFormat(["ru-RU"], {
   second: "numeric"
 });
 
-export default function Countdown({ seconds = 0, onEnded = () => {} }) {
-  const [remaining, setRemaining] = useState(seconds);
-  const [mounted, setMounted] = useState(false);
-  const ended = useRef(false);
+type CountdownProps = {
+  to: Date;
+  onEnded?: () => void;
+};
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRemaining((value) => {
-        value--;
-
-        if (value < 0) {
-          clearInterval(remaining);
-          setRemaining(0);
-
-          if (!ended.current) {
-            onEnded();
-            ended.current = true;
-          }
-
-          return 0;
-        }
-
-        return value;
-      });
-    }, 1000);
-
-    setMounted(true);
-
-    return () => clearInterval(interval);
-  });
-
-  if (!mounted) return null;
-
+export default function Countdown({ to, onEnded }: CountdownProps) {
+  const remaining = useCountdownSeconds(to, { onEnded });
   const display = formatter.format(remaining * Time.Second + offset);
   return <>{display}</>;
 }
