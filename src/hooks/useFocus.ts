@@ -1,6 +1,7 @@
-import { RefObject, useCallback, useEffect, useState } from "react";
+/* eslint-disable @typescript-eslint/no-confusing-void-expression */
+import { type RefObject, useCallback, useEffect, useState } from "react";
 
-export function useFocus(ref: RefObject<Element>) {
+export function useFocus(ref: RefObject<Element>): boolean {
   const [focused, setFocused] = useState(false);
 
   const onFocus = useCallback(() => setFocused(true), [setFocused]);

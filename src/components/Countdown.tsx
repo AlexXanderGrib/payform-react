@@ -16,9 +16,9 @@ const formatter = new Intl.DateTimeFormat(["ru-RU"], {
 type CountdownProps = {
   to: Date;
   onEnded?: () => void;
-};
+}
 
-export default function Countdown({ to, onEnded }: CountdownProps) {
+export default function Countdown({ to, onEnded }: CountdownProps): JSX.Element {
   const remaining = useCountdownSeconds(to, { onEnded });
   const display = formatter.format(remaining * Time.Second + offset);
   return <>{display}</>;

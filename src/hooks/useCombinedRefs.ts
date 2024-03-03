@@ -1,10 +1,10 @@
-import { ForwardedRef, useEffect, useRef } from "react";
+import { type ForwardedRef, type RefObject, useEffect, useRef } from "react";
 
-export function useCombinedRefs<T>(...refs: ForwardedRef<T>[]) {
+export function useCombinedRefs<T>(...refs: Array<ForwardedRef<T>>): RefObject<T> {
   const targetRef = useRef<T>(null);
 
   useEffect(() => {
-    refs.forEach((ref) => {
+    refs.forEach(ref => {
       if (!ref) return;
 
       if (typeof ref === "function") {

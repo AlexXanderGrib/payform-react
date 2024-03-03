@@ -1,39 +1,39 @@
 import {
   createContext,
-  FormEvent,
+  type FormEvent,
+  forwardRef,
+  type RefObject,
   useCallback,
   useContext,
-  useRef,
-  useState,
-  forwardRef,
-  RefObject,
   useId,
-  useMemo
+  useMemo,
+  useRef,
+  useState
 } from "react";
-import IMask from "imask";
 import {
   CalendarIcon,
-  InformationCircleIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  InformationCircleIcon
 } from "@heroicons/react/24/outline";
+import IMask from "imask";
 
-import { CardInput } from "./CardInput";
-import { validatorOf } from "../utils/validator";
+import { useAutoJump } from "../hooks/useAutoJump";
 import {
   acceptedPaymentSystems,
   Card,
-  CardPaymentSystem,
+  type CardPaymentSystem,
   Csc,
   detectPaymentSystem,
   Expiry,
-  meta,
-  Pan
-} from "../utils/card";
-import MainButton from "./MainButton";
-import { useAutoJump } from "../hooks/useAutoJump";
+  getCardPaymentSystemMeta,
+  Pan} from "../utils/card";
 import { indexOfNth } from "../utils/index-of-nth";
+import { validatorOf } from "../utils/validator";
 
-const filterPan = (cardNumber: string) => cardNumber.replace(/\D/g, "");
+import { CardInput } from "./CardInput";
+import MainButton from "./MainButton";
+
+const filterPan = (cardNumber: string): string => cardNumber.replace(/\D/g, "");
 
 type CardFormProps = {
   disabled?: boolean;
@@ -45,20 +45,23 @@ const ValidationContext = createContext({
   canSubmit: (): boolean => false
 });
 
-export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
+const names = Object.freeze({
+  pan: "cc-number",
+  expiry: "cc-exp",
+  csc: "cc-csc"
+});
+
+export function CardForm({
+  disabled = false,
+  onSubmit
+}: CardFormProps): JSX.Element {
   const ref = useRef<HTMLFormElement>(null);
   const [error, setError] = useState("");
 
   const canSubmit = useCallback(
-    () => ref.current?.checkValidity() || false,
+    () => ref.current?.checkValidity() ?? false,
     [ref.current]
   );
-
-  const names = {
-    pan: "cc-number",
-    expiry: "cc-exp",
-    csc: "cc-csc"
-  };
 
   const panRef = useRef<HTMLInputElement>(null);
   const expiryRef = useRef<HTMLInputElement>(null);
@@ -71,11 +74,13 @@ export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
 
       const formData = new FormData(ref.current);
 
-      const pan = filterPan(formData.get(names.pan)?.toString()!);
-      const expiry = formData.get(names.expiry)?.toString().split("/");
-      const csc = formData.get(names.csc)?.toString();
+      const card = {
+        pan: filterPan(formData.get(names.pan)?.toString() ?? ""),
+        expiry: formData.get(names.expiry)?.toString().split("/"),
+        csc: formData.get(names.csc)?.toString()
+      };
 
-      const result = Card.validate({ pan, expiry, csc } as Card);
+      const result = Card.validate(card);
 
       if (!result.success) {
         setError(result.message);
@@ -84,13 +89,13 @@ export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
 
       onSubmit?.(result.value);
     },
-    [ref.current!]
+    [ref.current]
   );
 
   return (
     <form action="#" ref={ref} onSubmit={handleSubmit}>
       <ValidationContext.Provider value={{ canSubmit, disabled }}>
-        <div className="grid grid-cols-2 grid-rows-[auto_auto] gap-4 bg-secondary-100 dark:bg-secondary-800 p-4 rounded-xl forced-colors:border-2">
+        <div className="grid grid-cols-2 grid-rows-[auto_auto] gap-4 rounded-xl bg-secondary-100 p-4 dark:bg-secondary-800 forced-colors:border-2">
           <section className="col-span-2">
             <CardPan name={names.pan} ref={panRef} next={expiryRef} />
           </section>
@@ -103,7 +108,7 @@ export function CardForm({ disabled = false, onSubmit }: CardFormProps) {
           <CardCsc name={names.csc} ref={cscRef} prev={expiryRef} />
         </div>
       </ValidationContext.Provider>
-      <div className="pt-8 empty:hidden text-danger-500">{error}</div>
+      <div className="pt-8 text-danger-500 empty:hidden">{error}</div>
       <div className="h-8" />
       <MainButton type="submit">Оплатить</MainButton>
     </form>
@@ -134,8 +139,7 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
     }
   });
 
-  const descriptor =
-    meta[paymentSystem as CardPaymentSystem] ?? meta.defaultValue;
+  const descriptor = getCardPaymentSystemMeta(paymentSystem);
   const mask = descriptor.mask;
   const minLength = Math.min(...descriptor.lengths);
   const maxLength = indexOfNth(mask, "0", Math.max(...descriptor.lengths)) + 1;
@@ -151,7 +155,8 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
         onKeyDown={onKeyDown}
         name={name}
         icon={
-          paymentSystem && acceptedPaymentSystems.includes(paymentSystem) ? (
+          paymentSystem != null &&
+          acceptedPaymentSystems.includes(paymentSystem) ? (
             <img
               src={`icons/ps_${paymentSystem.toLowerCase()}.svg`}
               alt={paymentSystem}
@@ -161,7 +166,7 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
               decoding="auto"
             />
           ) : (
-            <CreditCardIcon className="w-6 h-6" />
+            <CreditCardIcon className="h-6 w-6" />
           )
         }
         autoComplete="cc-number"
@@ -178,7 +183,7 @@ const CardPan = forwardRef<HTMLInputElement, CardElementProps>(function CardPan(
   );
 });
 
-function getMonths() {
+function getMonths(): Map<string, string> {
   const months = new Map<string, string>();
   const date = new Date();
   let formatter: Intl.DateTimeFormat | undefined;
@@ -230,7 +235,7 @@ const CardExpiry = forwardRef<HTMLInputElement, CardElementProps>(
         <CardInput
           list={id}
           validate={validateExpiry}
-          icon={<CalendarIcon className="w-6 h-6" />}
+          icon={<CalendarIcon className="h-6 w-6" />}
           mask={{
             mask: "MM{/}YY",
             blocks: {
@@ -266,8 +271,9 @@ const CardExpiry = forwardRef<HTMLInputElement, CardElementProps>(
 );
 
 const validateCsc = validatorOf((csc: string) => Csc.validate(csc));
-const alertTargetTitle = (event: { currentTarget: HTMLElement }) =>
+const alertTargetTitle = (event: { currentTarget: HTMLElement }): void => {
   alert(event.currentTarget.title);
+};
 
 const CardCsc = forwardRef<HTMLInputElement, CardElementProps>(
   function CardExpiry({ name, prev }, ref) {
@@ -284,10 +290,10 @@ const CardCsc = forwardRef<HTMLInputElement, CardElementProps>(
             title="Он находится с обратной стороны карты - 3 цифры"
             aria-label='Узнать что такое "Код"'
             type="button"
-            className="clickable appearance-none block !cursor-help"
+            className="block !cursor-help appearance-none clickable"
             onClick={alertTargetTitle}
           >
-            <InformationCircleIcon className="w-6 h-6" />
+            <InformationCircleIcon className="h-6 w-6" />
           </button>
         }
         ref={ref}

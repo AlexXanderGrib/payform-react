@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-redeclare */
 import * as t from "runtypes";
+
 import { luhnCheck } from "./luhn";
 
 export const enum CardPaymentSystem {
@@ -21,7 +23,7 @@ export function formatPan(
   pan: string,
   mask = "0000 0000 0000 0000 000",
   maskChar = "0"
-) {
+): string {
   let index = 0;
   let result = "";
   for (const char of mask.split("")) {
@@ -36,7 +38,7 @@ export function formatPan(
   return result;
 }
 
-export function resolveCardExpiryYear(year: number | string) {
+export function resolveCardExpiryYear(year: number | string): number {
   year = parseInt(String(year));
 
   const MAX_CARD_ISSUE_YEARS = 30;
@@ -46,58 +48,69 @@ export function resolveCardExpiryYear(year: number | string) {
   return 1900 + year;
 }
 
+type BinTableRow = readonly [
+  paymentSystem: CardPaymentSystem,
+  start: number,
+  end?: number
+];
+
 // https://en.wikipedia.org/wiki/Payment_card_number#Issuer_identification_number_(IIN)
-const paymentSystems: readonly [string, CardPaymentSystem][] = [
-  ["2200-2204", CardPaymentSystem.Mir],
-  ["2221-2720", CardPaymentSystem.Mastercard],
-  ["3528-3589", CardPaymentSystem.JCB],
-  ["34", CardPaymentSystem.AmericanExpress],
-  ["37", CardPaymentSystem.AmericanExpress],
-  ["36", CardPaymentSystem.DinersClub],
-  ["417500", CardPaymentSystem.Electron],
-  ["4026", CardPaymentSystem.Electron],
-  ["4508", CardPaymentSystem.Electron],
-  ["4844", CardPaymentSystem.Electron],
-  ["4913", CardPaymentSystem.Electron],
-  ["4917", CardPaymentSystem.Electron],
-  ["4", CardPaymentSystem.Visa],
-  ["5018", CardPaymentSystem.Maestro],
-  ["5020", CardPaymentSystem.Maestro],
-  ["5038", CardPaymentSystem.Maestro],
-  ["5893", CardPaymentSystem.Maestro],
-  ["54", CardPaymentSystem.DinersClub],
-  ["51-55", CardPaymentSystem.Mastercard],
-  ["622126-622925", CardPaymentSystem.Discover],
-  ["6011", CardPaymentSystem.Discover],
-  ["6304", CardPaymentSystem.Maestro],
-  ["6759", CardPaymentSystem.Maestro],
-  ["6761", CardPaymentSystem.Maestro],
-  ["6762", CardPaymentSystem.Maestro],
-  ["6763", CardPaymentSystem.Maestro],
-  ["676770", CardPaymentSystem.Maestro],
-  ["676774", CardPaymentSystem.Maestro],
-  ["644-649", CardPaymentSystem.Discover],
-  ["65", CardPaymentSystem.Discover],
+const BIN_TABLE: readonly BinTableRow[] = [
+  [CardPaymentSystem.Mir, 2200, 2204],
+  [CardPaymentSystem.Mastercard, 2221, 2720],
+  [CardPaymentSystem.JCB, 3528, 3589],
+  [CardPaymentSystem.AmericanExpress, 34],
+  [CardPaymentSystem.AmericanExpress, 37],
+  [CardPaymentSystem.DinersClub, 36],
+  [CardPaymentSystem.Electron, 417500],
+  [CardPaymentSystem.Electron, 4026],
+  [CardPaymentSystem.Electron, 4508],
+  [CardPaymentSystem.Electron, 4844],
+  [CardPaymentSystem.Electron, 4913],
+  [CardPaymentSystem.Electron, 4917],
+  [CardPaymentSystem.Visa, 4],
+  [CardPaymentSystem.Maestro, 5018],
+  [CardPaymentSystem.Maestro, 5020],
+  [CardPaymentSystem.Maestro, 5038],
+  [CardPaymentSystem.Maestro, 5893],
+  [CardPaymentSystem.DinersClub, 54],
+  [CardPaymentSystem.Mastercard, 51, 55],
+  [CardPaymentSystem.Discover, 622126, 622925],
+  [CardPaymentSystem.Discover, 6011],
+  [CardPaymentSystem.Maestro, 6304],
+  [CardPaymentSystem.Maestro, 6759],
+  [CardPaymentSystem.Maestro, 6761],
+  [CardPaymentSystem.Maestro, 6762],
+  [CardPaymentSystem.Maestro, 6763],
+  [CardPaymentSystem.Maestro, 676770],
+  [CardPaymentSystem.Maestro, 676774],
+  [CardPaymentSystem.Discover, 644, 649],
+  [CardPaymentSystem.Discover, 65],
 
   // this is for detection of Mir-UnionPay cards. 629157 is only bin i know
-  ["629157", CardPaymentSystem.Mir],
-  ["62", CardPaymentSystem.UnionPay]
+  [CardPaymentSystem.Mir, 629157],
+  [CardPaymentSystem.UnionPay, 62]
 
-  // ["8600", CardPaymentSystem.UzCard],
-  // ["9860", CardPaymentSystem.Humo],
-  // ["9792", CardPaymentSystem.Troy]
+  // [CardPaymentSystem.UzCard, 8600],
+  // [CardPaymentSystem.Humo, 9860],
+  // [CardPaymentSystem.Troy, 9792]
 ];
 
 type Overrides<T> = Readonly<
   Partial<Record<CardPaymentSystem, T>> & { defaultValue: T }
 >;
 
-const extendedDefault = {
+type PaymentSystemMeta = {
+  mask: string;
+  lengths: number[];
+};
+
+const extendedDefault: PaymentSystemMeta = {
   mask: "0000 0000 0000 0000000",
   lengths: [16, 17, 18, 19]
 };
 
-export const meta: Overrides<{ lengths: number[]; mask: string }> = {
+const meta: Overrides<PaymentSystemMeta> = {
   defaultValue: {
     mask: "0000 0000 0000 0000",
     lengths: [16]
@@ -129,19 +142,14 @@ export const meta: Overrides<{ lengths: number[]; mask: string }> = {
   }
 };
 
-function matchRange(range: string, cardNumber: string): boolean {
-  if (!range.includes("-")) {
-    return cardNumber.startsWith(range);
+export function getCardPaymentSystemMeta(
+  system?: CardPaymentSystem
+): PaymentSystemMeta {
+  if (!system || !(system in meta)) {
+    return meta.defaultValue;
   }
 
-  const rangeStart = parseInt(range.split("-")[0], 10);
-  const rangeEnd = parseInt(range.split("-")[1], 10);
-  const cardNumberNumeric = parseInt(
-    cardNumber.slice(0, rangeStart.toString().length),
-    10
-  );
-
-  return cardNumberNumeric >= rangeStart && cardNumberNumeric <= rangeEnd;
+  return meta[system] ?? meta.defaultValue;
 }
 
 export const acceptedPaymentSystems = [
@@ -169,24 +177,26 @@ const errorMessages = {
 
 export function detectPaymentSystem(
   cardNumber: string,
-  available: CardPaymentSystem[] = acceptedPaymentSystems
-) {
-  if (typeof cardNumber !== "string" || cardNumber === "") return [];
+  supported: CardPaymentSystem[] = acceptedPaymentSystems
+): CardPaymentSystem[] {
+  if (typeof cardNumber !== "string" || cardNumber === "") {
+    return [];
+  }
 
-  const paymentSystem = paymentSystems
-    .filter(([range, system]) => {
-      if (Array.isArray(available) && !available.includes(system)) {
-        return false;
-      }
+  const paymentSystem = BIN_TABLE.filter(([system, start, end = start]) => {
+    const cardNumberNumeric = Number.parseInt(
+      cardNumber.slice(0, String(start).length),
+      10
+    );
 
-      return matchRange(range, cardNumber);
-    })
-    .map((x) => x[1]);
+    const match = cardNumberNumeric >= start && cardNumberNumeric <= end;
+    return match && (!supported?.length || supported.includes(system));
+  }).map(x => x[0]);
 
   return paymentSystem;
 }
 
-export const Pan = t.String.withConstraint((str) => {
+export const Pan = t.String.withConstraint(str => {
   if (!/^\d+$/.test(str)) {
     return errorMessages.ONLY_NUMBERS_ALLOWED;
   }
@@ -217,16 +227,15 @@ export const Pan = t.String.withConstraint((str) => {
 export const Expiry = t
   .Tuple(
     t.String.withConstraint(
-      (str) =>
-        /^(0?\d|10|11|12)$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
+      str => /^(0?\d|10|11|12)$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
     ),
     t.String.withConstraint(
-      (str) => /^\d{2}$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
+      str => /^\d{2}$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
     )
   )
-  .withConstraint((value) => {
+  .withConstraint(value => {
     const [month, year] = value
-      .map((value) => parseInt(value, 10))
+      .map(value => parseInt(value, 10))
       .concat([NaN, NaN]);
 
     if (Number.isNaN(month) || Number.isNaN(year)) {
@@ -250,7 +259,7 @@ export const Expiry = t
   });
 
 export const Csc = t.String.withConstraint(
-  (str) => /^\d{3,4}$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
+  str => /^\d{3,4}$/.test(str) || errorMessages.ONLY_NUMBERS_ALLOWED
 );
 
 export const Card = t
@@ -281,7 +290,7 @@ export function string2card(string: string): Card {
   });
 }
 
-export function maskPan(pan: string) {
+export function maskPan(pan: string): string {
   const bin = pan.slice(0, 6);
   const id = pan.slice(-4);
   const mask = "*".repeat(pan.length - 10);

@@ -11,7 +11,7 @@ function App() {
 
   return (
     <div>
-      <div className="w-full min-h-screen flex items-center flex-col absolute top-0 left-0 bg-secondary-100 dark:bg-black">
+      <div className="absolute left-0 top-0 flex min-h-screen w-full flex-col items-center bg-secondary-100 dark:bg-black">
         <Wrapper
           amount={1337.65}
           billId="#150"

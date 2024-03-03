@@ -1,15 +1,15 @@
 import {
-  DetailedHTMLProps,
-  ForwardedRef,
+  type DetailedHTMLProps,
+  type ForwardedRef,
   forwardRef,
-  InputHTMLAttributes,
-  ReactNode,
-  RefObject,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type RefObject,
   useEffect,
-  useRef,
   useState
 } from "react";
-import IMask, { FactoryArg } from "imask";
+import IMask, { type FactoryArg } from "imask";
+
 import { useCombinedRefs } from "../hooks/useCombinedRefs";
 import { useFocus } from "../hooks/useFocus";
 import { cn } from "../utils/cn";
@@ -35,7 +35,7 @@ function useMask(
   ref: RefObject<HTMLInputElement>,
   options: IMaskOptions,
   { onAccept }: UseMaskOptions = {}
-) {
+): void {
   useEffect(() => {
     if (!ref.current) return;
     const el = ref.current;
@@ -62,7 +62,7 @@ export const CardInput = forwardRef(function CardInput(
     ...props
   }: CardInputOptions,
   outerRef: ForwardedRef<HTMLInputElement>
-) {
+): JSX.Element {
   const [error, setError] = useState("");
   const ref = useCombinedRefs(outerRef);
   const focused = useFocus(ref);
@@ -87,7 +87,7 @@ export const CardInput = forwardRef(function CardInput(
       </span>
       <div
         className={cn(
-          "bg-white border-2 border-secondary-400 dark:bg-slate-900 dark:border-secondary-700 flex rounded-lg overflow-hidden",
+          "flex overflow-hidden rounded-lg border-2 border-secondary-400 bg-white dark:border-secondary-700 dark:bg-slate-900",
           { "!border-primary-600": focused, "!border-danger-600": error }
         )}
       >
@@ -95,18 +95,18 @@ export const CardInput = forwardRef(function CardInput(
           {...props}
           ref={ref}
           className={cn(
-            "w-full py-4 px-2 md:px-4 border-none ![box-shadow:none] outline-none text-lg text-secondary-900 dark:text-white dark:bg-slate-900 !no-arrow placeholder-select-none",
+            "w-full border-none px-2 py-4 text-lg text-secondary-900 outline-none placeholder-select-none !no-arrow ![box-shadow:none] md:px-4 dark:bg-slate-900 dark:text-white",
             { "!pr-0": !!icon }
           )}
         />
 
         {!!icon && (
-          <span className="py-4 px-1 sm:px-2 md:px-4 flex items-center justify-center text-secondary-600 forced-colors:text-white dark:text-secondary-400">
+          <span className="flex items-center justify-center px-1 py-4 text-secondary-600 sm:px-2 md:px-4 dark:text-secondary-400 forced-colors:text-white">
             {icon}
           </span>
         )}
       </div>
-      <div className="text-danger-600 text-sm empty:hidden">{error}</div>
+      <div className="text-sm text-danger-600 empty:hidden">{error}</div>
     </label>
   );
 });

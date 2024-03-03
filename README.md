@@ -1,4 +1,4 @@
-# Платёжная форма на React + Typescript + Tailwind 
+# Платёжная форма на React + Typescript + Tailwind
 
 ## [Демо](https://payform-react.pages.dev/)
 
@@ -7,7 +7,6 @@
 - Автозаполнение карты
 - Правильная клавиатура на телефоне
 - Тёмная тема
-
 
 ![Скриншот](docs/screenshot.png)
 

@@ -1,26 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
 
-function secondsBefore(date: Date) {
-  return Math.max(Math.ceil((date.getTime() - Date.now()) / 1000), 0);
+function calculateRemainingSeconds (date: Date): number {
+  return Math.max(Math.ceil((date.getTime() - Date.now()) / 1000), 0)
 }
 
-export function useCountdownSeconds(to: Date, { onEnded = () => {} } = {}) {
-  const [seconds, setSeconds] = useState(secondsBefore(to));
+export function useCountdownSeconds (to: Date, { onEnded = () => {} } = {}): number {
+  const [seconds, setSeconds] = useState(calculateRemainingSeconds(to))
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const remaining = secondsBefore(to);
-      setSeconds(remaining);
+      const remaining = calculateRemainingSeconds(to)
+      setSeconds(remaining)
 
       if (remaining === 0) {
-        clearInterval(interval);
-        onEnded();
+        clearInterval(interval)
+        onEnded()
       }
-    }, 1000);
+    }, 1000)
 
+    return () => { clearInterval(interval) }
+  }, [to, setSeconds, onEnded])
 
-    return () => clearInterval(interval);
-  }, [to, setSeconds]);
-
-  return seconds;
+  return seconds
 }

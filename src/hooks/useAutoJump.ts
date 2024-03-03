@@ -1,4 +1,4 @@
-import { KeyboardEvent, RefObject, useCallback, useRef } from "react";
+import { type KeyboardEvent, type RefObject, useCallback, useRef } from "react";
 
 export type UseAutoJumpOptions = {
   effect?: (value: string, el: HTMLInputElement) => void;
@@ -7,6 +7,7 @@ export type UseAutoJumpOptions = {
   prev?: RefObject<HTMLElement>;
 };
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useAutoJump({
   dependencies = [],
   effect,
@@ -20,7 +21,6 @@ export function useAutoJump({
         const validity = ref.checkValidity();
 
         if (result && validity && next?.current) {
-
           next.current.focus();
         }
       });
@@ -67,7 +67,6 @@ export function useAutoJump({
     },
     [prev?.current, next?.current]
   );
-
 
   return { onUpdate, onKeyDown };
 }

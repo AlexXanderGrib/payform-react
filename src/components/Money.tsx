@@ -1,6 +1,11 @@
 import { space } from "../utils/space";
 
-export function Money({ amount = 0, currencySign = "₽" }) {
+type MoneyProps = {
+  amount: string | number;
+  currencySign?: string;
+}
+
+export function Money({ amount = 0, currencySign = "₽" }: MoneyProps): JSX.Element {
   amount = parseFloat(amount.toString());
   const mainPart = Math.trunc(amount);
   const fraction = amount * 100 - mainPart * 100;
